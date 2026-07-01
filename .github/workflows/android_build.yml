@@ -18,50 +18,27 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        # Caching ko remove kar diya hai taake scan error na aaye
 
-    - name: Unzip Project and Build APK
+    - name: Build APK with Gradle
       run: |
-        echo "Searching for ZIP files..."
-        ZIP_FILE=$(find . -maxdepth 2 -iname "*.zip" | head -n 1)
+        echo "Checking repository contents..."
+        ls -la
         
-        if [ -n "$ZIP_FILE" ]; then
-          echo "Found ZIP file: $ZIP_FILE. Unzipping..."
-          unzip -o "$ZIP_FILE" -d extracted_project
-          cd extracted_project
-        else
-          echo "ERROR: No ZIP file found in the repository root!"
-          exit 1
-        fi
-
-        echo "Locating Android project with 'app' directory..."
-        # Find the folder containing the 'app' directory
-        TARGET_DIR=$(find . -type d -name "app" -exec dirname {} \; | head -n 1)
-        
-        if [ -z "$TARGET_DIR" ]; then
-          TARGET_DIR=$(find . -name "settings.gradle*" -exec dirname {} \; | head -n 1)
-        fi
-        
-        if [ -z "$TARGET_DIR" ]; then
-          echo "ERROR: Could not find 'app' folder or settings.gradle inside the ZIP!"
-          exit 1
-        fi
-        
-        echo "Moving to project directory: $TARGET_DIR"
-        cd "$TARGET_DIR"
-        
-        # Create gradle wrapper if missing
+        # Check if gradlew exists, if not generate it
         if [ ! -f "gradlew" ]; then
-          echo "Generating Gradle wrapper..."
+          echo "Gradlew not found, generating wrapper..."
           gradle wrapper
         fi
         
+        # Give execution permissions
         chmod +x gradlew
+        
+        # Compile Android project to APK
         ./gradlew assembleDebug
 
-    - name: Upload APK
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-debug-apk
         path: |
-          **/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/debug/*.apk
