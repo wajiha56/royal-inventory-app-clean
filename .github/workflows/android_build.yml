@@ -18,7 +18,7 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: 'gradle'
+        # Caching ko remove kar diya hai taake scan error na aaye
 
     - name: Unzip Project and Build APK
       run: |
