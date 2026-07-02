@@ -19,11 +19,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    # Downgrade system Gradle to 8.5 to maintain compatibility with your project's Hilt/Kotlin versions
-    - name: Setup Gradle 8.5
+    # Setup Gradle 8.7 (Fully compatible with AGP 8.4.0 out-of-the-box)
+    - name: Setup Gradle 8.7
       uses: gradle/actions/setup-gradle@v4
       with:
-        gradle-version: '8.5'
+        gradle-version: '8.7'
 
     - name: Unzip and Build APK
       run: |
@@ -50,12 +50,44 @@ jobs:
           echo "No ZIP file found. Building from repository root..."
         fi
         
-        echo "=================== STEP 2: BYPASSING AGP VERSION CHECK ==================="
-        # Inject property to bypass the AGP 8.4.0 minimum Gradle version check (forcing it to build on 8.5)
-        echo "android.overrideVersionCheck=true" >> gradle.properties
-        echo "Injected 'android.overrideVersionCheck=true' into gradle.properties"
+        echo "=================== STEP 2: AUTO-HEALING CONFIGURATION ==================="
+        # Automate the injection of missing Hilt dependencies directly into the extracted app/build.gradle.kts
+        python3 -c '
+        import os
+        filepath = "app/build.gradle.kts"
+        if os.path.exists(filepath):
+            print("Reading app/build.gradle.kts...")
+            with open(filepath, "r") as f:
+                content = f.read()
+            
+            modified = False
+            
+            # Ensure kotlin-kapt is applied inside the plugins block
+            if "kapt" not in content:
+                if "plugins {" in content:
+                    print("Auto-applying kotlin-kapt plugin...")
+                    content = content.replace("plugins {", "plugins {\n    id(\"kotlin-kapt\")", 1)
+                    modified = True
+            
+            # Inject the missing Dagger Hilt runtime and compiler dependencies
+            if "com.google.dagger:hilt-android" not in content:
+                if "dependencies {" in content:
+                    print("Auto-injecting missing Dagger Hilt dependencies...")
+                    replacement = "dependencies {\n    implementation(\"com.google.dagger:hilt-android:2.51.1\")\n    kapt(\"com.google.dagger:hilt-compiler:2.51.1\")"
+                    content = content.replace("dependencies {", replacement, 1)
+                    modified = True
+            
+            if modified:
+                with open(filepath, "w") as f:
+                    f.write(content)
+                print("Successfully updated app/build.gradle.kts!")
+            else:
+                print("No modifications needed for app/build.gradle.kts.")
+        else:
+            print("WARNING: app/build.gradle.kts not found!")
+        '
         
-        echo "=================== STEP 3: RUNNING BUILD WITH GRADLE 8.5 ==================="
+        echo "=================== STEP 3: RUNNING BUILD WITH GRADLE 8.7 ==================="
         gradle assembleDebug --stacktrace
 
     - name: Upload APK Artifact
