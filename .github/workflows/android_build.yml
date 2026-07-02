@@ -45,11 +45,9 @@ jobs:
         fi
         
         echo "=================== STEP 2: GRADLE PREPARATION ==================="
-        # Generate gradle wrapper if missing
-        if [ ! -f "gradlew" ]; then
-          echo "Generating Gradle wrapper..."
-          gradle wrapper
-        fi
+        # Generate Gradle wrapper with version 8.5 to fix Gradle 9.x compatibility crash
+        echo "Generating stable Gradle wrapper (v8.5)..."
+        gradle wrapper --gradle-version 8.5
         
         chmod +x gradlew
         
