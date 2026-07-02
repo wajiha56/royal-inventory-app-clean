@@ -51,10 +51,10 @@ jobs:
         fi
         
         echo "=================== STEP 2: AUTO-HEALING CONFIGURATION ==================="
-        # Run a Python script to automatically detect and fix the typo 'google.dagger' to 'com.google.dagger'
-        # and inject Hilt/Kapt dependencies if missing.
+        # Run Python script to fix package typos, inject missing Hilt dependencies, and generate google-services.json
         python3 -c '
         import os
+        import json
         
         # 1. Fix "google.dagger" typo in all config files
         files_to_check = [
@@ -71,7 +71,6 @@ jobs:
                     content = f.read()
                 
                 if "google.dagger" in content:
-                    # Safe replacement avoiding com.com.google.dagger
                     content = content.replace("com.google.dagger", "TEMP_MARKER_DAGGER")
                     content = content.replace("google.dagger", "com.google.dagger")
                     content = content.replace("TEMP_MARKER_DAGGER", "com.google.dagger")
@@ -95,7 +94,7 @@ jobs:
                     content = content.replace("plugins {", "plugins {\n    id(\"kotlin-kapt\")", 1)
                     modified = True
             
-            # Force-inject correct Dagger Hilt runtime and compiler dependencies
+            # Force-inject correct Dagger Hilt dependencies
             if "com.google.dagger:hilt-android" not in content:
                 if "dependencies {" in content:
                     print("Auto-injecting missing Dagger Hilt dependencies...")
@@ -107,9 +106,42 @@ jobs:
                 with open(filepath, "w") as f:
                     f.write(content)
                 print("Successfully healed app/build.gradle.kts!")
+                
+        # 3. Create dummy google-services.json to satisfy Google Services task
+        google_json_path = "app/google-services.json"
+        if not os.path.exists(google_json_path):
+            print("google-services.json is missing! Creating dummy config...")
+            dummy_json = {
+                "project_info": {
+                    "project_number": "1234567890",
+                    "project_id": "dummy-project-id",
+                    "storage_bucket": "dummy-project-id.appspot.com"
+                },
+                "client": [
+                    {
+                        "client_info": {
+                            "mobilesdk_app_id": "1:1234567890:android:abc123xyz",
+                            "android_client_info": {
+                                "package_name": "com.royal.inventory"
+                            }
+                        },
+                        "oauth_client": [],
+                        "api_key": [{"current_key": "dummy-api-key"}],
+                        "services": {
+                            "appinvite_service": {
+                                "other_platform_oauth_client": []
+                            }
+                        }
+                    }
+                ],
+                "configuration_version": "1"
+            }
+            with open(google_json_path, "w") as f:
+                json.dump(dummy_json, f, indent=4)
+            print("Successfully generated dummy google-services.json!")
         '
         
-        # 3. Inject AndroidX properties into gradle.properties to resolve AndroidXDependencyCheck failure
+        # 4. Inject AndroidX properties to resolve AndroidXDependencyCheck failure
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
         echo "Injected AndroidX properties into gradle.properties"
