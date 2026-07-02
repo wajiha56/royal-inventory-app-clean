@@ -19,11 +19,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    # Gradle 8.8 select kiya hai jo AGP 8.4.0 (>=8.6) aur Hilt (<9.0) dono ke sath compatible hai
-    - name: Setup Gradle 8.8
+    # Setup Gradle 8.7 to satisfy AGP 8.4.0 (>=8.6) and preserve Dagger Hilt binary compatibility (<8.8)
+    - name: Setup Gradle 8.7
       uses: gradle/actions/setup-gradle@v4
       with:
-        gradle-version: '8.8'
+        gradle-version: '8.7'
 
     - name: Unzip and Build APK
       run: |
@@ -50,7 +50,8 @@ jobs:
           echo "No ZIP file found. Building from repository root..."
         fi
         
-        echo "=================== STEP 2: RUNNING BUILD WITH GRADLE 8.8 ==================="
+        echo "=================== STEP 2: RUNNING BUILD WITH GRADLE 8.7 ==================="
+        # Uses 'gradle' command on PATH (pinned to 8.7) to bypass incompatible Gradle wrappers
         gradle assembleDebug --stacktrace
 
     - name: Upload APK Artifact
