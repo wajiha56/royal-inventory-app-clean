@@ -51,7 +51,7 @@ jobs:
         fi
         
         echo "=================== STEP 2: AUTO-HEALING CONFIGURATION ==================="
-        # Automate the injection of missing Hilt dependencies directly into the extracted app/build.gradle.kts
+        # 1. Automate the injection of missing Hilt dependencies directly into the extracted app/build.gradle.kts
         python3 -c '
         import os
         filepath = "app/build.gradle.kts"
@@ -86,6 +86,11 @@ jobs:
         else:
             print("WARNING: app/build.gradle.kts not found!")
         '
+        
+        # 2. Inject AndroidX properties into gradle.properties to resolve AndroidXDependencyCheck failure
+        echo "android.useAndroidX=true" >> gradle.properties
+        echo "android.enableJetifier=true" >> gradle.properties
+        echo "Injected AndroidX properties into gradle.properties"
         
         echo "=================== STEP 3: RUNNING BUILD WITH GRADLE 8.7 ==================="
         gradle assembleDebug --stacktrace
