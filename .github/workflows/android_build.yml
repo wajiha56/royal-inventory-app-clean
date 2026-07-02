@@ -19,11 +19,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    # GitHub Actions ke zariye Gradle 8.5 install karega aur isay primary command banayega
-    - name: Setup Gradle 8.5
+    # Gradle 8.8 select kiya hai jo AGP 8.4.0 (>=8.6) aur Hilt (<9.0) dono ke sath compatible hai
+    - name: Setup Gradle 8.8
       uses: gradle/actions/setup-gradle@v4
       with:
-        gradle-version: '8.5'
+        gradle-version: '8.8'
 
     - name: Unzip and Build APK
       run: |
@@ -50,8 +50,7 @@ jobs:
           echo "No ZIP file found. Building from repository root..."
         fi
         
-        echo "=================== STEP 2: RUNNING BUILD WITH GRADLE 8.5 ==================="
-        # System command 'gradle' (v8.5) use kar rahe hain taake system Gradle 9 bypass ho jaye
+        echo "=================== STEP 2: RUNNING BUILD WITH GRADLE 8.8 ==================="
         gradle assembleDebug --stacktrace
 
     - name: Upload APK Artifact
