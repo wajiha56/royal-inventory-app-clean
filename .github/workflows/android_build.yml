@@ -21,30 +21,30 @@ jobs:
 
     - name: Unzip and Build APK
       run: |
-        echo "Searching for ZIP files..."
+        echo "=================== STEP 1: UNZIPPING ==================="
         ZIP_FILE=$(find . -maxdepth 1 -iname "*.zip" | head -n 1)
         
         if [ -n "$ZIP_FILE" ]; then
           echo "Found ZIP file: $ZIP_FILE. Unzipping..."
           unzip -o "$ZIP_FILE" -d extracted_project
           
-          # Find where the 'app' directory is located inside the extracted files
+          echo "Listing extracted files structure:"
+          find extracted_project -maxdepth 3
+          
           TARGET_DIR=$(find extracted_project -type d -name "app" -exec dirname {} \; | head -n 1)
           
           if [ -n "$TARGET_DIR" ]; then
-            echo "Switching to extracted project directory: $TARGET_DIR"
+            echo "Switching to project directory: $TARGET_DIR"
             cd "$TARGET_DIR"
           else
-            echo "Error: 'app' directory not found inside the ZIP file!"
+            echo "ERROR: 'app' folder not found inside the ZIP file!"
             exit 1
           fi
         else
           echo "No ZIP file found. Building from repository root..."
         fi
         
-        echo "Current directory contents:"
-        ls -la
-        
+        echo "=================== STEP 2: GRADLE PREPARATION ==================="
         # Generate gradle wrapper if missing
         if [ ! -f "gradlew" ]; then
           echo "Generating Gradle wrapper..."
@@ -52,7 +52,9 @@ jobs:
         fi
         
         chmod +x gradlew
-        ./gradlew assembleDebug
+        
+        echo "=================== STEP 3: RUNNING BUILD ==================="
+        ./gradlew assembleDebug --stacktrace
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
