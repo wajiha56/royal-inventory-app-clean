@@ -141,10 +141,12 @@ jobs:
             print("Successfully generated dummy google-services.json!")
         '
         
-        # 4. Inject AndroidX properties to resolve AndroidXDependencyCheck failure
+        # 4. Inject AndroidX properties and JVM Memory configurations to resolve compiler thrashing
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
-        echo "Injected AndroidX properties into gradle.properties"
+        echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> gradle.properties
+        echo "org.gradle.daemon=false" >> gradle.properties
+        echo "Injected AndroidX and memory configurations into gradle.properties"
         
         echo "=================== STEP 3: RUNNING BUILD WITH GRADLE 8.7 ==================="
         gradle assembleDebug --stacktrace
