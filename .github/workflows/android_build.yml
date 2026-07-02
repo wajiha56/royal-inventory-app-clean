@@ -51,12 +51,38 @@ jobs:
         fi
         
         echo "=================== STEP 2: AUTO-HEALING CONFIGURATION ==================="
-        # 1. Automate the injection of missing Hilt dependencies directly into the extracted app/build.gradle.kts
+        # Run a Python script to automatically detect and fix the typo 'google.dagger' to 'com.google.dagger'
+        # and inject Hilt/Kapt dependencies if missing.
         python3 -c '
         import os
+        
+        # 1. Fix "google.dagger" typo in all config files
+        files_to_check = [
+            "app/build.gradle.kts",
+            "build.gradle.kts",
+            "gradle/libs.versions.toml",
+            "settings.gradle.kts"
+        ]
+        
+        for rel_path in files_to_check:
+            if os.path.exists(rel_path):
+                print(f"Checking {rel_path} for typos...")
+                with open(rel_path, "r") as f:
+                    content = f.read()
+                
+                if "google.dagger" in content:
+                    # Safe replacement avoiding com.com.google.dagger
+                    content = content.replace("com.google.dagger", "TEMP_MARKER_DAGGER")
+                    content = content.replace("google.dagger", "com.google.dagger")
+                    content = content.replace("TEMP_MARKER_DAGGER", "com.google.dagger")
+                    
+                    with open(rel_path, "w") as f:
+                        f.write(content)
+                    print(f"Successfully fixed typos in {rel_path}!")
+
+        # 2. Inject missing Hilt plugins and dependencies in app/build.gradle.kts
         filepath = "app/build.gradle.kts"
         if os.path.exists(filepath):
-            print("Reading app/build.gradle.kts...")
             with open(filepath, "r") as f:
                 content = f.read()
             
@@ -69,7 +95,7 @@ jobs:
                     content = content.replace("plugins {", "plugins {\n    id(\"kotlin-kapt\")", 1)
                     modified = True
             
-            # Inject the missing Dagger Hilt runtime and compiler dependencies
+            # Force-inject correct Dagger Hilt runtime and compiler dependencies
             if "com.google.dagger:hilt-android" not in content:
                 if "dependencies {" in content:
                     print("Auto-injecting missing Dagger Hilt dependencies...")
@@ -80,14 +106,10 @@ jobs:
             if modified:
                 with open(filepath, "w") as f:
                     f.write(content)
-                print("Successfully updated app/build.gradle.kts!")
-            else:
-                print("No modifications needed for app/build.gradle.kts.")
-        else:
-            print("WARNING: app/build.gradle.kts not found!")
+                print("Successfully healed app/build.gradle.kts!")
         '
         
-        # 2. Inject AndroidX properties into gradle.properties to resolve AndroidXDependencyCheck failure
+        # 3. Inject AndroidX properties into gradle.properties to resolve AndroidXDependencyCheck failure
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
         echo "Injected AndroidX properties into gradle.properties"
